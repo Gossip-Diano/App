@@ -54,7 +54,7 @@ export const NewGossipModal: React.FC<NewGossipModalProps> = ({
       author: authorDisplayName,
       isAnonymous,
       text: text.trim(),
-      hipe: 1, // ogni nuovo gossip parte con 1 fiamma
+      hipe: 1,
       status,
       color: stylePick.color,
       pinColor: stylePick.pinColor,
@@ -64,7 +64,7 @@ export const NewGossipModal: React.FC<NewGossipModalProps> = ({
 
     triggerBigCelebration();
 
-    // Feedback uniforme e silenzioso: non rivela se il gossip è pulito o finito in quarantena
+    // Feedback silenzioso e uniforme
     setSubmissionFeedback('🔥 Gossip inviato con successo!');
 
     setTimeout(() => {
@@ -75,36 +75,36 @@ export const NewGossipModal: React.FC<NewGossipModalProps> = ({
       setIsAnonymous(true);
       setSubmissionFeedback(null);
       onClose();
-    }, 1400);
+    }, 1300);
   };
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-2xl animate-in fade-in duration-300"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-2xl animate-in fade-in duration-200"
       onClick={onClose}
     >
       {/* Contenitore Modale con bordi rossi e look liquido */}
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-lg rounded-3xl border-2 border-[#FF0033] bg-[#0c0c10]/95 p-6 md:p-8 shadow-[0_0_50px_rgba(255,0,51,0.35)] liquid-glass overflow-hidden animate-in zoom-in-95 duration-200"
+        className="relative w-full max-w-lg max-h-[92dvh] overflow-y-auto rounded-3xl border-2 border-[#FF0033] bg-[#0c0c10]/95 p-5 sm:p-8 shadow-[0_0_50px_rgba(255,0,51,0.35)] liquid-glass animate-in zoom-in-95 duration-200 overscroll-contain"
       >
         {/* Glow corner */}
         <div className="absolute top-0 right-0 w-36 h-36 bg-[#FF0033]/20 rounded-full blur-2xl pointer-events-none" />
 
-        {/* Tasto Chiudi */}
+        {/* Tasto Chiudi con target touch 44px */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors z-10"
+          className="absolute top-3 right-3 p-2.5 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors z-10 min-w-[44px] min-h-[44px] flex items-center justify-center"
           aria-label="Chiudi finestra"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Header Morfante: Tasto "+" allargato in barra d'inserimento "NUOVO GOSSIP" con bordi rossi */}
-        <div className="mb-6 text-center">
-          <div className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-2xl bg-gradient-to-r from-[#FF0033]/20 via-[#FF0033]/30 to-[#FF0033]/20 border border-[#FF0033] shadow-[0_0_20px_rgba(255,0,51,0.4)]">
+        <div className="mb-5 sm:mb-6 text-center pt-1">
+          <div className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-[#FF0033]/20 via-[#FF0033]/30 to-[#FF0033]/20 border border-[#FF0033] shadow-[0_0_20px_rgba(255,0,51,0.4)]">
             <Flame className="w-5 h-5 text-[#FF0033] fill-[#FF0033]" />
-            <h2 className="text-base sm:text-lg font-black tracking-wider text-white font-display uppercase">
+            <h2 className="text-sm sm:text-lg font-black tracking-wider text-white font-display uppercase">
               Nuovo Gossip
             </h2>
           </div>
@@ -115,7 +115,7 @@ export const NewGossipModal: React.FC<NewGossipModalProps> = ({
 
         {/* Feedback uniforme di invio */}
         {submissionFeedback ? (
-          <div className="py-12 text-center space-y-4">
+          <div className="py-10 text-center space-y-4">
             <div className="w-16 h-16 rounded-full bg-[#FF0033]/20 border border-[#FF0033] mx-auto flex items-center justify-center animate-bounce">
               <Flame className="w-8 h-8 text-[#FF0033] fill-current" />
             </div>
@@ -124,7 +124,7 @@ export const NewGossipModal: React.FC<NewGossipModalProps> = ({
             </p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
             
             {/* AREA DI TESTO GOSSIP */}
             <div>
@@ -139,32 +139,32 @@ export const NewGossipModal: React.FC<NewGossipModalProps> = ({
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                   placeholder="Es: Avvistati nell'intervallo al bar... oppure: Il prof di fisica ha fatto un'interrogazione da infarto..."
-                  className="w-full bg-[#07070a] border border-zinc-800 focus:border-[#FF0033] rounded-2xl p-4 text-sm text-white placeholder-zinc-500 outline-none transition-all resize-none shadow-inner leading-relaxed"
+                  className="w-full bg-[#07070a] border border-zinc-800 focus:border-[#FF0033] rounded-2xl p-3.5 sm:p-4 text-base sm:text-sm text-white placeholder-zinc-500 outline-none transition-all resize-none shadow-inner leading-relaxed"
                 />
                 
                 {/* Contatore caratteri */}
-                <span className="absolute bottom-3 right-3 text-[10px] font-mono text-zinc-500">
+                <span className="absolute bottom-2.5 right-3 text-[10px] font-mono text-zinc-500">
                   {text.length}/{charLimit}
                 </span>
               </div>
             </div>
 
             {/* SEZIONE TOGGLE ANONIMO CON ANIMAZIONE FLUIDA */}
-            <div className="space-y-3 pt-1">
-              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-zinc-900/60 border border-zinc-800">
+            <div className="space-y-2.5 pt-1">
+              <div className="flex items-center justify-between p-3 sm:p-3.5 rounded-2xl bg-zinc-900/60 border border-zinc-800">
                 <div className="flex items-center gap-2.5">
                   <EyeOff className="w-4 h-4 text-[#FF0033]" />
                   <div>
-                    <div className="text-sm font-semibold text-white">
+                    <div className="text-xs sm:text-sm font-semibold text-white">
                       Pubblica in Anonimo
                     </div>
-                    <div className="text-[11px] text-zinc-400">
+                    <div className="text-[10px] sm:text-[11px] text-zinc-400">
                       Nessuno saprà chi ha inviato questo gossip
                     </div>
                   </div>
                 </div>
 
-                {/* Lo Switcher Toggle */}
+                {/* Lo Switcher Toggle comodo per il pollice */}
                 <button
                   type="button"
                   onClick={() => setIsAnonymous(prev => !prev)}
@@ -194,7 +194,7 @@ export const NewGossipModal: React.FC<NewGossipModalProps> = ({
                     placeholder="Es: Giulia (4^B) o Il Detective"
                     value={authorName}
                     onChange={(e) => setAuthorName(e.target.value)}
-                    className="w-full bg-[#07070a] border border-zinc-800 focus:border-[#FF0033] rounded-2xl py-2.5 px-4 text-sm text-white placeholder-zinc-500 outline-none transition-all shadow-inner"
+                    className="w-full bg-[#07070a] border border-zinc-800 focus:border-[#FF0033] rounded-2xl py-2.5 px-4 text-base sm:text-sm text-white placeholder-zinc-500 outline-none transition-all shadow-inner"
                   />
                 </div>
               )}
@@ -205,7 +205,7 @@ export const NewGossipModal: React.FC<NewGossipModalProps> = ({
               <button
                 type="submit"
                 disabled={!text.trim() || isSubmitting}
-                className="w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-2xl bg-[#FF0033] hover:bg-[#e0002d] text-white font-bold text-base shadow-[0_0_20px_rgba(255,0,51,0.5)] active:scale-[0.98] transition-all disabled:opacity-40 disabled:pointer-events-none"
+                className="w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-2xl bg-[#FF0033] hover:bg-[#e0002d] text-white font-bold text-base shadow-[0_0_20px_rgba(255,0,51,0.5)] active:scale-[0.98] transition-all disabled:opacity-40 disabled:pointer-events-none min-h-[48px]"
               >
                 <Send className="w-4 h-4" />
                 <span>{isSubmitting ? 'Invio in corso...' : 'Invia Gossip 🚀'}</span>

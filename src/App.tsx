@@ -20,7 +20,7 @@ import {
   updateGossipInFirestore, 
   deleteGossipFromFirestore, 
   updateConfigInFirestore,
-  seedInitialGossipsIfEmpty,
+  deleteAllExampleGossips,
   testFirestoreConnection
 } from './services/firebase';
 import { triggerFireworkConfetti } from './services/confetti';
@@ -58,22 +58,22 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
-  // 1. Inizializzazione e Sottoscrizione Live Firebase (onSnapshot Stile Social Network)
+  // 1. Inizializzazione, pulizia esempi e Sottoscrizione Live Firebase (onSnapshot)
   useEffect(() => {
-    // Test connessione server
-    testFirestoreConnection().catch(() => {});
+    try {
+      localStorage.removeItem('gossip_diano_posts_v2');
+      localStorage.removeItem('gossip_diano_posts_v1');
+    } catch {}
 
-    // Se il database è vuoto, carica automaticamente i primi gossip di partenza
-    const initialLocal = getStoredGossips();
-    seedInitialGossipsIfEmpty(initialLocal).catch(console.error);
+    // Test connessione server e pulizia vecchi esempi
+    testFirestoreConnection().catch(() => {});
+    deleteAllExampleGossips().catch(console.error);
 
     // Ascolto in tempo reale dei gossip
     const unsubscribeGossips = subscribeToGossips(
       (liveGossips) => {
-        if (liveGossips && liveGossips.length > 0) {
-          setGossips(liveGossips);
-          saveStoredGossips(liveGossips);
-        }
+        setGossips(liveGossips);
+        saveStoredGossips(liveGossips);
         setIsLiveConnected(true);
       },
       (err) => {
@@ -144,14 +144,12 @@ export default function App() {
 
   // Invio nuovo gossip
   const handleSubmitGossip = async (newGossip: Gossip) => {
-    // Aggiunta immediata locale
     setGossips(prev => {
       const updated = [newGossip, ...prev];
       saveStoredGossips(updated);
       return updated;
     });
 
-    // Scrittura in tempo reale su Firebase (visibile istantaneamente a tutti gli utenti)
     try {
       await addGossipToFirestore(newGossip);
     } catch (err) {
@@ -216,22 +214,22 @@ export default function App() {
   const pendingCount = gossips.filter(g => g.status === 'In attesa').length;
 
   return (
-    <div className="min-h-screen bg-[#050505] text-zinc-100 flex flex-col justify-between selection:bg-[#FF0033] selection:text-white">
+    <div className="min-h-[100dvh] bg-[#050505] text-zinc-100 flex flex-col justify-between selection:bg-[#FF0033] selection:text-white">
       
-      {/* 1. TOP APP BAR CON BRAND ZONE, STATO LIVE SYNC E WHATSAPP */}
-      <header className="sticky top-0 z-30 w-full border-b border-zinc-800/80 bg-[#07070a]/90 backdrop-blur-xl">
-        <div className="max-w-5xl mx-auto px-4 h-15 flex items-center justify-between">
+      {/* 1. TOP APP BAR CON SUPPORTO SAFE-AREA (NOTCH / DYNAMIC ISLAND) */}
+      <header className="sticky top-0 z-30 w-full border-b border-zinc-800/80 bg-[#07070a]/90 backdrop-blur-xl pt-[env(safe-area-inset-top,0px)]">
+        <div className="max-w-5xl mx-auto px-3 sm:px-4 h-14 sm:h-15 flex items-center justify-between">
           
           {/* Brand Zone */}
           <div 
             onClick={() => setCurrentTab('home')}
-            className="flex items-center gap-2.5 cursor-pointer select-none group"
+            className="flex items-center gap-2 sm:gap-2.5 cursor-pointer select-none group active:scale-95 transition-transform"
           >
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#FF0033] to-[#80001a] flex items-center justify-center shadow-[0_0_15px_rgba(255,0,51,0.5)] group-hover:scale-105 transition-transform">
-              <Flame className="w-5 h-5 text-white fill-white" />
+              <Flame className="w-4.5 h-4.5 text-white fill-white" />
             </div>
             <div className="flex flex-col text-left">
-              <span className="text-lg font-black tracking-tight text-white font-display">
+              <span className="text-base sm:text-lg font-black tracking-tight text-white font-display">
                 Gossip <span className="text-[#FF0033]">Diano</span>
               </span>
             </div>
@@ -240,27 +238,28 @@ export default function App() {
           {/* Quick Actions Zone */}
           <div className="flex items-center gap-2">
             
-            {/* Indicatore Live Sync Cloud Stile Social Network */}
+            {/* Indicatore Live Cloud */}
             <div 
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 border border-zinc-800/90 text-zinc-300 text-[11px] font-medium"
-              title={isLiveConnected ? "Sincronizzazione in tempo reale attiva per tutti i dispositivi" : "Riconnessione al server..."}
+              className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-zinc-900/90 border border-zinc-800/90 text-zinc-300 text-[10px] sm:text-[11px] font-medium"
+              title={isLiveConnected ? "Sincronizzazione in tempo reale attiva" : "Riconnessione al server..."}
             >
-              <Radio className={`w-3 h-3 ${isLiveConnected ? 'text-emerald-400 animate-pulse' : 'text-amber-400'}`} />
-              <span className="text-[11px] font-semibold text-zinc-300 hidden sm:inline">
-                {isLiveConnected ? 'Live' : 'Connessione...'}
+              <Radio className={`w-2.5 h-2.5 sm:w-3 sm:h-3 ${isLiveConnected ? 'text-emerald-400 animate-pulse' : 'text-amber-400'}`} />
+              <span className="font-semibold text-zinc-300">
+                {isLiveConnected ? 'Live' : '...'}
               </span>
             </div>
 
-            {/* Link WhatsApp Ufficiale */}
+            {/* Link WhatsApp Ufficiale con target touch mobile */}
             <a
               href={settings.whatsappLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-950/40 border border-emerald-600/40 text-emerald-300 hover:text-white hover:bg-emerald-900/60 text-xs font-semibold transition-all active:scale-95"
+              className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-full bg-emerald-950/40 border border-emerald-600/40 text-emerald-300 hover:text-white hover:bg-emerald-900/60 text-xs font-semibold transition-all active:scale-95 min-h-[36px]"
               title="Gruppo WhatsApp Ufficiale"
             >
               <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
               <span className="hidden sm:inline">Gruppo WhatsApp</span>
+              <span className="sm:hidden">WhatsApp</span>
             </a>
           </div>
 
@@ -269,13 +268,13 @@ export default function App() {
 
       {/* Toast Notifica Cooldown 10 Secondi */}
       {cooldownToast && (
-        <div className="fixed top-18 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-amber-950/90 border border-amber-500/70 text-amber-200 text-xs font-bold backdrop-blur-xl shadow-[0_0_20px_rgba(245,158,11,0.3)] flex items-center gap-2 animate-bounce">
+        <div className="fixed top-16 sm:top-18 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-amber-950/95 border border-amber-500/70 text-amber-200 text-xs font-bold backdrop-blur-xl shadow-[0_0_20px_rgba(245,158,11,0.3)] flex items-center gap-2 animate-bounce">
           <span>{cooldownToast}</span>
         </div>
       )}
 
-      {/* 2. AREA CONTENUTI PRINCIPALE DINAMICA */}
-      <main className="flex-1 max-w-5xl w-full mx-auto px-3 sm:px-4 pt-4">
+      {/* 2. AREA CONTENUTI PRINCIPALE DINAMICA CON SAFE PADDING INFERIORE */}
+      <main className="flex-1 max-w-5xl w-full mx-auto px-2.5 sm:px-4 pt-3 pb-[calc(5rem+env(safe-area-inset-bottom,0px))]">
         {currentTab === 'home' && (
           <HomeScreen
             gossips={gossips}

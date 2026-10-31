@@ -110,19 +110,35 @@ export function subscribeToConfig(
 }
 
 /**
- * Se Firestore è vuoto al primo avvio, inserisce automaticamente i gossip di esempio iniziali
+ * Elimina tutti i vecchi gossip di esempio (g-001 ... g-010, g-pending-01) da Firestore
  */
-export async function seedInitialGossipsIfEmpty(initialGossips: Gossip[]): Promise<void> {
+export async function deleteAllExampleGossips(): Promise<void> {
+  const exampleIds = [
+    'g-001', 'g-002', 'g-003', 'g-004', 'g-005',
+    'g-006', 'g-007', 'g-008', 'g-009', 'g-010', 'g-pending-01'
+  ];
+
   try {
-    const snap = await getDocs(collection(db, GOSSIPS_COLLECTION));
-    if (snap.empty) {
-      console.log('Inizializzazione database Firebase con i primi gossip...');
-      for (const gossip of initialGossips) {
-        await setDoc(doc(db, GOSSIPS_COLLECTION, gossip.id), gossip);
-      }
+    for (const id of exampleIds) {
+      const ref = doc(db, GOSSIPS_COLLECTION, id);
+      await deleteDoc(ref);
     }
   } catch (error) {
-    handleFirestoreError(error, OperationType.WRITE, GOSSIPS_COLLECTION);
+    handleFirestoreError(error, OperationType.DELETE, GOSSIPS_COLLECTION);
+  }
+}
+
+/**
+ * Elimina tutti i documenti dalla collezione gossips (Admin)
+ */
+export async function clearAllGossipsFromFirestore(): Promise<void> {
+  try {
+    const snap = await getDocs(collection(db, GOSSIPS_COLLECTION));
+    for (const docSnap of snap.docs) {
+      await deleteDoc(docSnap.ref);
+    }
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, GOSSIPS_COLLECTION);
   }
 }
 

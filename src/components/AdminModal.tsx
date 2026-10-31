@@ -5,6 +5,7 @@ import {
   Radio, Sparkles
 } from 'lucide-react';
 import { Gossip, AppSettings } from '../types';
+import { clearAllGossipsFromFirestore } from '../services/firebase';
 
 interface AdminModalProps {
   isOpen: boolean;
@@ -91,6 +92,12 @@ export const AdminModal: React.FC<AdminModalProps> = ({
       onUpdateGossipText(id, editTextContent.trim());
     }
     setEditingGossipId(null);
+  };
+
+  const handleClearAll = async () => {
+    if (window.confirm("Sei sicuro di voler eliminare TUTTI i gossip dal database Firebase? L'azione è irreversibile.")) {
+      await clearAllGossipsFromFirestore();
+    }
   };
 
   const handleSaveSettingsSubmit = (e: React.FormEvent) => {
@@ -312,95 +319,114 @@ export const AdminModal: React.FC<AdminModalProps> = ({
               {/* SCHEDA 2: ARCHIVIO DI GESTIONE */}
               {adminTab === 'archive' && (
                 <div className="space-y-4">
-                  <div>
-                    <h4 className="text-base font-bold text-white font-display">
-                      Archivio di Gestione Completo
-                    </h4>
-                    <p className="text-xs text-zinc-400">
-                      Modifica il testo dei gossip o rimuovi contenuti inappropriati dallo storico in tempo reale.
-                    </p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-base font-bold text-white font-display">
+                        Archivio di Gestione Completo
+                      </h4>
+                      <p className="text-xs text-zinc-400">
+                        Modifica il testo dei gossip o rimuovi contenuti inappropriati dallo storico in tempo reale.
+                      </p>
+                    </div>
+
+                    {allGossips.length > 0 && (
+                      <button
+                        onClick={handleClearAll}
+                        className="flex items-center gap-1 py-1.5 px-3 rounded-xl bg-red-950/40 border border-red-800/40 hover:bg-red-900/60 text-red-300 text-xs font-semibold transition-all"
+                        title="Cancella tutti i gossip dal database"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Svuota tutto</span>
+                      </button>
+                    )}
                   </div>
 
-                  <div className="space-y-3">
-                    {allGossips.map(gossip => (
-                      <div
-                        key={gossip.id}
-                        className="p-4 rounded-2xl bg-zinc-950/70 border border-zinc-800/90 liquid-glass space-y-3"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2 text-xs text-zinc-400">
-                            <span className="font-bold text-[#FF0033]">{gossip.author}</span>
-                            <span>·</span>
-                            <span>{gossip.month} {gossip.schoolYear}</span>
-                            <span>·</span>
-                            <span className="flex items-center gap-1 font-mono text-amber-400">
-                              <Flame className="w-3 h-3 fill-current" />
-                              {gossip.hipe} Hipe
-                            </span>
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                              gossip.status === 'Approvato'
-                                ? 'bg-emerald-950/40 text-emerald-300 border border-emerald-800/40'
-                                : 'bg-amber-950/40 text-amber-300 border border-amber-800/40'
-                            }`}>
-                              {gossip.status}
-                            </span>
-                          </div>
+                  {allGossips.length === 0 ? (
+                    <div className="p-10 rounded-2xl liquid-glass text-center border border-zinc-800 text-zinc-400 text-sm">
+                      Nessun gossip presente nel database. Il feed è pulito!
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {allGossips.map(gossip => (
+                        <div
+                          key={gossip.id}
+                          className="p-4 rounded-2xl bg-zinc-950/70 border border-zinc-800/90 liquid-glass space-y-3"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 text-xs text-zinc-400">
+                              <span className="font-bold text-[#FF0033]">{gossip.author}</span>
+                              <span>·</span>
+                              <span>{gossip.month} {gossip.schoolYear}</span>
+                              <span>·</span>
+                              <span className="flex items-center gap-1 font-mono text-amber-400">
+                                <Flame className="w-3 h-3 fill-current" />
+                                {gossip.hipe} Hipe
+                              </span>
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                gossip.status === 'Approvato'
+                                  ? 'bg-emerald-950/40 text-emerald-300 border border-emerald-800/40'
+                                  : 'bg-amber-950/40 text-amber-300 border border-amber-800/40'
+                              }`}>
+                                {gossip.status}
+                              </span>
+                            </div>
 
-                          {/* Pulsanti Modifica ed Elimina */}
-                          <div className="flex items-center gap-1.5">
-                            {editingGossipId === gossip.id ? (
+                            {/* Pulsanti Modifica ed Elimina */}
+                            <div className="flex items-center gap-1.5">
+                              {editingGossipId === gossip.id ? (
+                                <button
+                                  onClick={() => saveEditing(gossip.id)}
+                                  className="flex items-center gap-1 py-1 px-2.5 rounded-lg bg-emerald-600 text-white font-bold text-xs"
+                                >
+                                  <Check className="w-3.5 h-3.5" />
+                                  <span>Salva</span>
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => startEditing(gossip)}
+                                  className="flex items-center gap-1 py-1 px-2.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs transition-colors"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                  <span>Modifica</span>
+                                </button>
+                              )}
                               <button
-                                onClick={() => saveEditing(gossip.id)}
-                                className="flex items-center gap-1 py-1 px-2.5 rounded-lg bg-emerald-600 text-white font-bold text-xs"
+                                onClick={() => onDeleteGossip(gossip.id)}
+                                className="p-1 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-950/30 transition-colors"
+                                title="Elimina definitivamente"
                               >
-                                <Check className="w-3.5 h-3.5" />
-                                <span>Salva</span>
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => startEditing(gossip)}
-                                className="flex items-center gap-1 py-1 px-2.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs transition-colors"
-                              >
-                                <Edit3 className="w-3.5 h-3.5" />
-                                <span>Modifica</span>
-                              </button>
-                            )}
-                            <button
-                              onClick={() => onDeleteGossip(gossip.id)}
-                              className="p-1 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-950/30 transition-colors"
-                              title="Elimina definitivamente"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Visualizzazione o Modifica Testo */}
-                        {editingGossipId === gossip.id ? (
-                          <div className="space-y-2">
-                            <textarea
-                              rows={3}
-                              value={editTextContent}
-                              onChange={(e) => setEditTextContent(e.target.value)}
-                              className="w-full bg-[#050508] border border-[#FF0033] rounded-xl p-3 text-sm text-white outline-none"
-                            />
-                            <div className="flex justify-end gap-2">
-                              <button
-                                onClick={() => setEditingGossipId(null)}
-                                className="text-xs text-zinc-400 hover:text-white px-2 py-1"
-                              >
-                                Annulla
+                                <Trash2 className="w-4 h-4" />
                               </button>
                             </div>
                           </div>
-                        ) : (
-                          <p className="text-sm text-zinc-200 leading-snug">
-                            "{gossip.text}"
-                          </p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+
+                          {/* Visualizzazione o Modifica Testo */}
+                          {editingGossipId === gossip.id ? (
+                            <div className="space-y-2">
+                              <textarea
+                                rows={3}
+                                value={editTextContent}
+                                onChange={(e) => setEditTextContent(e.target.value)}
+                                className="w-full bg-[#050508] border border-[#FF0033] rounded-xl p-3 text-sm text-white outline-none"
+                              />
+                              <div className="flex justify-end gap-2">
+                                <button
+                                  onClick={() => setEditingGossipId(null)}
+                                  className="text-xs text-zinc-400 hover:text-white px-2 py-1"
+                                >
+                                  Annulla
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-sm text-zinc-200 leading-snug">
+                              "{gossip.text}"
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 

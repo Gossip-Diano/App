@@ -6,32 +6,53 @@
     --accent-red-glow: rgba(255, 0, 51, 0.35);
   }
 
+  html {
+    overscroll-behavior-y: none;
+    -webkit-text-size-adjust: 100%;
+  }
+
   body {
     background-color: #050505;
     color: #f3f4f6;
-    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     overflow-x: hidden;
     user-select: none;
+    -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    overscroll-behavior-y: none;
+  }
+
+  /* Abilita selezione testo negli input e aree di testo */
+  input, textarea, select {
+    user-select: text;
+    -webkit-user-select: text;
+    -webkit-touch-callout: default;
+    font-size: 16px; /* Previene auto-zoom su iOS Safari */
   }
 
   h1, h2, h3, .font-display {
     font-family: 'Outfit', sans-serif;
   }
+
+  /* Rimozione ritardo tap su browser mobile */
+  button, a, input, select, textarea {
+    touch-action: manipulation;
+  }
 }
 
 /* Custom scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0d0d0f;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #26262a;
+  background: #27272a;
   border-radius: 9999px;
 }
 
@@ -41,7 +62,7 @@
 
 /* Glassmorphism utilities */
 .liquid-glass {
-  background: rgba(14, 14, 18, 0.82);
+  background: rgba(14, 14, 18, 0.85);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 0, 51, 0.32);
@@ -58,12 +79,12 @@
 }
 
 .postit-shadow {
-  box-shadow: 0 10px 20px -3px rgba(0, 0, 0, 0.4),
-              0 4px 6px -2px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 16px -2px rgba(0, 0, 0, 0.4),
+              0 3px 6px -1px rgba(0, 0, 0, 0.2);
 }
 
 .postit-pin-shadow {
-  filter: drop-shadow(0 4px 3px rgba(0, 0, 0, 0.5));
+  filter: drop-shadow(0 3px 2px rgba(0, 0, 0, 0.6));
 }
 
 /* Smooth snap scrolling for shorts */
