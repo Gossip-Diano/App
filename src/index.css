@@ -7,20 +7,48 @@
   }
 
   html {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
     overscroll-behavior-y: none;
     -webkit-text-size-adjust: 100%;
+    -moz-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    /* Blocca lo zoom accidentale e scroll orizzontale su Android */
+    touch-action: pan-y;
   }
 
   body {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+    position: relative;
     background-color: #050505;
     color: #f3f4f6;
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    overflow-x: hidden;
     user-select: none;
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
     overscroll-behavior-y: none;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    touch-action: pan-y;
+  }
+
+  #root {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+    position: relative;
+    touch-action: pan-y;
+  }
+
+  /* Previene il Font Boosting / Text Autosizing di Android Chrome */
+  p, h1, h2, h3, h4, span, div, button, a {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    max-height: 999999px;
   }
 
   /* Abilita selezione testo negli input e aree di testo */
@@ -28,15 +56,16 @@
     user-select: text;
     -webkit-user-select: text;
     -webkit-touch-callout: default;
-    font-size: 16px; /* Previene auto-zoom su iOS Safari */
+    font-size: 16px; /* Previene auto-zoom su iOS e Android */
+    touch-action: auto;
   }
 
   h1, h2, h3, .font-display {
     font-family: 'Outfit', sans-serif;
   }
 
-  /* Rimozione ritardo tap su browser mobile */
-  button, a, input, select, textarea {
+  /* Rimozione ritardo tap su pulsanti */
+  button, a {
     touch-action: manipulation;
   }
 }

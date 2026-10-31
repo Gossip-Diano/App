@@ -2,7 +2,7 @@
 <html lang="it">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, shrink-to-fit=no, viewport-fit=cover" />
     <title>Gossip Diano</title>
     <meta name="description" content="L'app ufficiale per i gossip di scuola: bacheca post-it, feed shorts, classifica Hipe e archivio con pannello admin." />
     
@@ -25,10 +25,38 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
   </head>
-  <body class="bg-[#050505] text-zinc-100 antialiased overscroll-none select-none">
-    <div id="root"></div>
+  <body class="bg-[#050505] text-zinc-100 antialiased overscroll-none select-none overflow-x-hidden">
+    <div id="root" class="overflow-x-hidden w-full max-w-full"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
+      // Blocco universale del doppio tap e pinch zoom su Android e iOS
+      (function() {
+        // Disabilita pinch multi-touch
+        document.addEventListener('touchstart', function(event) {
+          if (event.touches.length > 1) {
+            event.preventDefault();
+          }
+        }, { passive: false });
+
+        // Disabilita zoom gesture Safari/Android
+        document.addEventListener('gesturestart', function(e) {
+          e.preventDefault();
+        });
+
+        // Disabilita doppio tap zoom su elementi non editabili
+        var lastTouchEnd = 0;
+        document.addEventListener('touchend', function(event) {
+          var now = (new Date()).getTime();
+          if (now - lastTouchEnd <= 300) {
+            var target = event.target;
+            if (target && target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
+              event.preventDefault();
+            }
+          }
+          lastTouchEnd = now;
+        }, false);
+      })();
+
       // Auto-fallback per GitHub Pages quando viene servito senza build server Vite
       setTimeout(function() {
         var root = document.getElementById('root');

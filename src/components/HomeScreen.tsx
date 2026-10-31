@@ -7,7 +7,7 @@ interface HomeScreenProps {
   votedIds: Set<string>;
   onSelectGossip: (gossip: Gossip) => void;
   onVoteHipe: (gossip: Gossip, e: React.MouseEvent) => void;
-  whatsappLink: string;
+  whatsappLink?: string;
   cooldownRemaining: number;
 }
 
@@ -58,10 +58,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     .sort((a, b) => b.hipe - a.hipe);
 
   return (
-    <div className="space-y-8 sm:space-y-10 pb-28 pt-1">
+    <div className="w-full max-w-full overflow-x-hidden space-y-7 sm:space-y-10 pb-28 pt-1">
       
       {/* 1. SEZIONE IN ALTO: BACHECA DEI POST-IT */}
-      <section className="space-y-3 sm:space-y-4">
+      <section className="w-full max-w-full overflow-hidden space-y-3 sm:space-y-4">
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-[#FF0033] shadow-[0_0_8px_#FF0033]" />
@@ -74,82 +74,87 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           </span>
         </div>
 
-        {/* Griglia Post-it ottimizzata per schermi piccoli e grandi */}
+        {/* Griglia Post-it con overflow-hidden per evitare qualsiasi slittamento dello zoom su Android */}
         {latestTen.length === 0 ? (
           <div className="p-8 sm:p-10 rounded-3xl liquid-glass text-center border border-zinc-800 text-zinc-400 text-sm">
             <Sparkles className="w-8 h-8 text-[#FF0033] mx-auto mb-2 opacity-80" />
             Nessun gossip ancora in bacheca. Tocca il tasto <strong className="text-white">"+"</strong> in basso per pubblicare il primo!
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 p-3 sm:p-5 bg-[#09090b]/80 border border-zinc-800/80 rounded-3xl shadow-2xl relative overflow-hidden">
+          <div className="w-full max-w-full overflow-hidden p-3 sm:p-5 bg-[#09090b]/80 border border-zinc-800/80 rounded-3xl shadow-2xl relative">
             {/* Texture sughero stilizzata di sfondo */}
             <div className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none" />
 
-            {latestTen.map((gossip) => {
-              const style = POSTIT_STYLES[gossip.color] || POSTIT_STYLES.yellow;
-              const isVoted = votedIds.has(gossip.id);
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 w-full">
+              {latestTen.map((gossip) => {
+                const style = POSTIT_STYLES[gossip.color] || POSTIT_STYLES.yellow;
+                const isVoted = votedIds.has(gossip.id);
+                // Rotazione limitata a max +-2 gradi su mobile per impedire clipping o overflow orizzontale
+                const safeRotation = Math.min(2, Math.max(-2, gossip.rotation || 0));
 
-              return (
-                <div
-                  key={gossip.id}
-                  onClick={() => onSelectGossip(gossip)}
-                  style={{
-                    transform: `rotate(${gossip.rotation}deg)`
-                  }}
-                  className={`group relative ${style.bg} ${style.text} p-3 sm:p-4 rounded-xl postit-shadow cursor-pointer transition-all duration-200 active:scale-95 hover:scale-105 hover:z-20 border ${style.border}/60 flex flex-col justify-between min-h-[160px] sm:min-h-[170px] select-none`}
-                >
-                  {/* Puntina colorata realistica */}
-                  <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 flex items-center justify-center z-10">
+                return (
+                  <div key={gossip.id} className="p-0.5 overflow-hidden">
                     <div
-                      className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border-2 border-white/80 postit-pin-shadow shadow-md flex items-center justify-center"
-                      style={{ backgroundColor: gossip.pinColor || '#FF0033' }}
+                      onClick={() => onSelectGossip(gossip)}
+                      style={{
+                        transform: `rotate(${safeRotation}deg)`
+                      }}
+                      className={`group relative ${style.bg} ${style.text} p-3 sm:p-4 rounded-xl postit-shadow cursor-pointer transition-all duration-200 active:scale-95 hover:scale-105 hover:z-20 border ${style.border}/60 flex flex-col justify-between min-h-[160px] sm:min-h-[170px] select-none`}
                     >
-                      <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-white/70" />
+                      {/* Puntina colorata realistica */}
+                      <div className="absolute -top-2 left-1/2 -translate-x-1/2 flex items-center justify-center z-10 pointer-events-none">
+                        <div
+                          className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border-2 border-white/80 postit-pin-shadow shadow-md flex items-center justify-center"
+                          style={{ backgroundColor: gossip.pinColor || '#FF0033' }}
+                        >
+                          <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-white/70" />
+                        </div>
+                      </div>
+
+                      {/* Intestazione Post-it */}
+                      <div className="pt-1.5 text-left">
+                        <div className="flex items-center justify-between text-[10px] sm:text-[11px] font-semibold text-zinc-700/80 mb-1 border-b border-black/10 pb-1">
+                          <span className="truncate max-w-[80px] sm:max-w-[100px]">{gossip.author}</span>
+                          <span className="text-[9px] sm:text-[10px] text-zinc-500 shrink-0 font-mono">
+                            {gossip.month ? gossip.month.slice(0, 3) : ''}
+                          </span>
+                        </div>
+
+                        {/* Testo gossip */}
+                        <p className="text-xs sm:text-sm leading-snug line-clamp-4 font-normal text-zinc-900 mt-1 italic">
+                          "{gossip.text}"
+                        </p>
+                      </div>
+
+                      {/* Footer del Post-it con Hipe e Apri */}
+                      <div className="flex items-center justify-between pt-2 border-t border-black/10 text-[10px] sm:text-[11px] font-medium mt-2">
+                        <button
+                          onClick={(e) => onVoteHipe(gossip, e)}
+                          className={`flex items-center gap-1 px-2 py-1 min-h-[28px] rounded-full transition-transform active:scale-110 ${
+                            cooldownRemaining > 0
+                              ? 'bg-zinc-800 text-zinc-300 font-semibold'
+                              : isVoted ? 'bg-red-500 text-white font-bold' : 'bg-black/10 hover:bg-black/20 text-zinc-800'
+                          }`}
+                          title={cooldownRemaining > 0 ? `Attendi ${cooldownRemaining}s` : 'Vota Hipe'}
+                        >
+                          <Flame className={`w-3.5 h-3.5 ${cooldownRemaining > 0 ? 'text-amber-400 fill-amber-400' : 'fill-current'}`} />
+                          <span>{cooldownRemaining > 0 ? `${cooldownRemaining}s` : gossip.hipe}</span>
+                        </button>
+                        <span className="text-[10px] text-zinc-600 group-hover:text-black font-semibold flex items-center gap-0.5">
+                          Apri <ExternalLink className="w-2.5 h-2.5 inline" />
+                        </span>
+                      </div>
                     </div>
                   </div>
-
-                  {/* Intestazione Post-it */}
-                  <div className="pt-1.5 text-left">
-                    <div className="flex items-center justify-between text-[10px] sm:text-[11px] font-semibold text-zinc-700/80 mb-1 border-b border-black/10 pb-1">
-                      <span className="truncate max-w-[85px] sm:max-w-[100px]">{gossip.author}</span>
-                      <span className="text-[9px] sm:text-[10px] text-zinc-500 shrink-0 font-mono">
-                        {gossip.month ? gossip.month.slice(0, 3) : ''}
-                      </span>
-                    </div>
-
-                    {/* Testo gossip */}
-                    <p className="text-xs sm:text-sm leading-snug line-clamp-4 font-normal text-zinc-900 mt-1 italic">
-                      "{gossip.text}"
-                    </p>
-                  </div>
-
-                  {/* Footer del Post-it con Hipe e Apri */}
-                  <div className="flex items-center justify-between pt-2 border-t border-black/10 text-[10px] sm:text-[11px] font-medium mt-2">
-                    <button
-                      onClick={(e) => onVoteHipe(gossip, e)}
-                      className={`flex items-center gap-1 px-2 py-1 min-h-[28px] rounded-full transition-transform active:scale-110 ${
-                        cooldownRemaining > 0
-                          ? 'bg-zinc-800 text-zinc-300 font-semibold'
-                          : isVoted ? 'bg-red-500 text-white font-bold' : 'bg-black/10 hover:bg-black/20 text-zinc-800'
-                      }`}
-                      title={cooldownRemaining > 0 ? `Attendi ${cooldownRemaining}s` : 'Vota Hipe'}
-                    >
-                      <Flame className={`w-3.5 h-3.5 ${cooldownRemaining > 0 ? 'text-amber-400 fill-amber-400' : 'fill-current'}`} />
-                      <span>{cooldownRemaining > 0 ? `${cooldownRemaining}s` : gossip.hipe}</span>
-                    </button>
-                    <span className="text-[10px] text-zinc-600 group-hover:text-black font-semibold flex items-center gap-0.5">
-                      Apri <ExternalLink className="w-2.5 h-2.5 inline" />
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         )}
       </section>
 
       {/* 2. SEZIONE IN BASSO: CLASSIFICA HIPE */}
-      <section className="space-y-3 sm:space-y-4">
+      <section className="w-full max-w-full overflow-hidden space-y-3 sm:space-y-4">
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
             <Flame className="w-5 h-5 sm:w-6 sm:h-6 text-[#FF0033] fill-[#FF0033]" />
@@ -167,7 +172,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             Nessun gossip ancora in classifica.
           </div>
         ) : (
-          <div className="space-y-2.5 sm:space-y-3">
+          <div className="space-y-2.5 sm:space-y-3 w-full max-w-full overflow-hidden">
             {rankedGossips.map((gossip, index) => {
               const rank = index + 1;
               const isTop1 = rank === 1;
@@ -179,7 +184,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 <div
                   key={gossip.id}
                   onClick={() => onSelectGossip(gossip)}
-                  className={`group relative flex items-center justify-between p-3 sm:p-4 rounded-2xl transition-all duration-200 cursor-pointer border active:scale-[0.99] ${
+                  className={`group relative flex items-center justify-between p-3 sm:p-4 rounded-2xl transition-all duration-200 cursor-pointer border active:scale-[0.99] w-full max-w-full overflow-hidden ${
                     isTop1
                       ? 'bg-gradient-to-r from-amber-950/40 via-[#0e0e12] to-zinc-950 border-amber-500/40 shadow-[0_0_18px_rgba(245,158,11,0.12)]'
                       : isTop2
@@ -190,7 +195,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                   }`}
                 >
                   {/* Badge Posizione & Testo */}
-                  <div className="flex items-center gap-2.5 sm:gap-4 shrink-0 min-w-0">
+                  <div className="flex items-center gap-2.5 sm:gap-4 shrink-0 min-w-0 flex-1 pr-2">
                     <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center font-display font-black text-xs sm:text-base border shadow-md shrink-0">
                       {isTop1 ? (
                         <div className="w-full h-full rounded-xl bg-amber-500/20 border-amber-400/60 text-amber-300 flex items-center justify-center gap-0.5">
@@ -213,12 +218,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                     </div>
 
                     {/* Testo e Autore con ellissi sicura */}
-                    <div className="min-w-0 text-left">
+                    <div className="min-w-0 text-left flex-1">
                       <p className="text-xs sm:text-sm font-medium text-zinc-100 line-clamp-1 group-hover:text-white transition-colors">
                         "{gossip.text}"
                       </p>
                       <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5 text-[11px] text-zinc-400">
-                        <span className="font-semibold text-[#FF0033] truncate max-w-[100px] sm:max-w-[140px]">
+                        <span className="font-semibold text-[#FF0033] truncate max-w-[95px] sm:max-w-[140px]">
                           {gossip.author}
                         </span>
                         <span>·</span>
@@ -228,7 +233,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                   </div>
 
                   {/* Pulsante Hipe con tocco comodo */}
-                  <div className="flex items-center gap-2 shrink-0 pl-2">
+                  <div className="flex items-center gap-2 shrink-0">
                     <button
                       onClick={(e) => onVoteHipe(gossip, e)}
                       className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full border transition-all active:scale-105 min-h-[38px] ${
