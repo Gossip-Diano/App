@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --accent-red: #FF0033;
+    --accent-red-glow: rgba(255, 0, 51, 0.35);
+  }
+
+  body {
+    background-color: #050505;
+    color: #f3f4f6;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    overflow-x: hidden;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  h1, h2, h3, .font-display {
+    font-family: 'Outfit', sans-serif;
+  }
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0d0d0f;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #26262a;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #FF0033;
+}
+
+/* Glassmorphism utilities */
+.liquid-glass {
+  background: rgba(14, 14, 18, 0.82);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 0, 51, 0.32);
+  box-shadow: 0 10px 35px -5px rgba(0, 0, 0, 0.8),
+              0 0 20px -3px rgba(255, 0, 51, 0.14);
+}
+
+.liquid-glass-red {
+  background: rgba(255, 0, 51, 0.12);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 0, 51, 0.5);
+  box-shadow: 0 0 25px rgba(255, 0, 51, 0.25);
+}
+
+.postit-shadow {
+  box-shadow: 0 10px 20px -3px rgba(0, 0, 0, 0.4),
+              0 4px 6px -2px rgba(0, 0, 0, 0.2);
+}
+
+.postit-pin-shadow {
+  filter: drop-shadow(0 4px 3px rgba(0, 0, 0, 0.5));
+}
+
+/* Smooth snap scrolling for shorts */
+.snap-y-mandatory {
+  scroll-snap-type: y mandatory;
+}
+
+.snap-start-card {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}

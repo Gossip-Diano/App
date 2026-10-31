@@ -1,0 +1,6 @@
+{
+  "name": "Gossip Diano",
+  "description": "L'app ufficiale per i gossip di scuola: bacheca post-it, feed shorts, classifica Hipe e archivio con pannello admin.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
