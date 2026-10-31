@@ -3,19 +3,26 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Flame, MessageCircle, RefreshCw, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Flame, MessageCircle, Radio } from 'lucide-react';
 import { Gossip, AppSettings, ScreenTab } from './types';
 import { 
   getStoredGossips, saveStoredGossips, 
   getStoredSettings, saveStoredSettings, 
   getVotedGossipIds, recordGossipVote,
-  syncWithGoogleSheet, sendGossipToGoogleSheet, 
-  voteHipeInGoogleSheet, updateGossipInGoogleSheet, 
-  deleteGossipInGoogleSheet, updateConfigInGoogleSheet,
-  bulkUploadToGoogleSheet,
   getRemainingCooldown, setLastVoteTimestamp, HIPE_COOLDOWN_SECONDS
 } from './services/storage';
+import { 
+  subscribeToGossips, 
+  subscribeToConfig, 
+  addGossipToFirestore, 
+  voteHipeInFirestore, 
+  updateGossipInFirestore, 
+  deleteGossipFromFirestore, 
+  updateConfigInFirestore,
+  seedInitialGossipsIfEmpty,
+  testFirestoreConnection
+} from './services/firebase';
 import { triggerFireworkConfetti } from './services/confetti';
 
 import { BottomNavBar } from './components/BottomNavBar';
@@ -36,18 +43,13 @@ export default function App() {
   const [isAdminModalOpen, setIsAdminModalOpen] = useState<boolean>(false);
   const [selectedGossip, setSelectedGossip] = useState<Gossip | null>(null);
   
-  const [isSyncing, setIsSyncing] = useState<boolean>(false);
-  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
-  const [sheetConnected, setSheetConnected] = useState<boolean>(false);
+  const [isLiveConnected, setIsLiveConnected] = useState<boolean>(true);
 
   // Cooldown di 10 secondi per i voti Hipe
   const [cooldownRemaining, setCooldownRemaining] = useState<number>(() => getRemainingCooldown());
   const [cooldownToast, setCooldownToast] = useState<string | null>(null);
 
-  // Per evitare sync paralleli sovrapposti
-  const syncingRef = useRef<boolean>(false);
-  const initialUploadDoneRef = useRef<boolean>(false);
-
+  // Timer cooldown
   useEffect(() => {
     const timer = window.setInterval(() => {
       const remaining = getRemainingCooldown();
@@ -56,87 +58,46 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
-  // Funzione core di sincronizzazione multi-dispositivo
-  const performSync = useCallback(async (forced: boolean = false) => {
-    if (!settings.googleScriptUrl || syncingRef.current) return;
-    
-    syncingRef.current = true;
-    setIsSyncing(true);
+  // 1. Inizializzazione e Sottoscrizione Live Firebase (onSnapshot Stile Social Network)
+  useEffect(() => {
+    // Test connessione server
+    testFirestoreConnection().catch(() => {});
 
-    try {
-      const result = await syncWithGoogleSheet(settings.googleScriptUrl);
-      if (result) {
-        setSheetConnected(true);
-        setLastSyncTime(new Date());
+    // Se il database è vuoto, carica automaticamente i primi gossip di partenza
+    const initialLocal = getStoredGossips();
+    seedInitialGossipsIfEmpty(initialLocal).catch(console.error);
 
-        // Se il Google Sheet è appena stato creato ed è vuoto, carichiamo automaticamente i gossip locali!
-        if ((!result.gossips || result.gossips.length === 0) && !initialUploadDoneRef.current) {
-          initialUploadDoneRef.current = true;
-          const currentLocal = getStoredGossips();
-          if (currentLocal.length > 0) {
-            await bulkUploadToGoogleSheet(settings.googleScriptUrl, currentLocal);
-          }
-        } else if (result.gossips && result.gossips.length > 0) {
-          // Unione intelligente: aggiorna o aggiunge gossip
-          setGossips(result.gossips);
-          saveStoredGossips(result.gossips);
+    // Ascolto in tempo reale dei gossip
+    const unsubscribeGossips = subscribeToGossips(
+      (liveGossips) => {
+        if (liveGossips && liveGossips.length > 0) {
+          setGossips(liveGossips);
+          saveStoredGossips(liveGossips);
         }
-
-        // Sincronizza configurazioni (es. link WhatsApp o nuova password impostati da Admin)
-        if (result.config) {
-          setSettings(prev => {
-            const updated = { ...prev, ...result.config };
-            saveStoredSettings(updated);
-            return updated;
-          });
-        }
-      } else {
-        if (forced) {
-          setSheetConnected(false);
-        }
+        setIsLiveConnected(true);
+      },
+      (err) => {
+        console.warn('Errore connessione live:', err);
+        setIsLiveConnected(false);
       }
-    } catch (err) {
-      console.warn('Sync error:', err);
-    } finally {
-      setIsSyncing(false);
-      syncingRef.current = false;
-    }
-  }, [settings.googleScriptUrl]);
+    );
 
-  // 1. Sincronizzazione automatica all'avvio e ad ogni cambio URL
-  useEffect(() => {
-    performSync(true);
-  }, [performSync]);
-
-  // 2. Polling periodico in background ogni 8 secondi (Multi-Device Live Sync)
-  useEffect(() => {
-    if (!settings.googleScriptUrl) return;
-
-    const interval = window.setInterval(() => {
-      performSync(false);
-    }, 8000);
-
-    return () => clearInterval(interval);
-  }, [settings.googleScriptUrl, performSync]);
-
-  // 3. Sincronizza istantaneamente quando l'utente torna sull'app (Focus / Mobile screen unlock)
-  useEffect(() => {
-    const handleVisibilityOrFocus = () => {
-      if (document.visibilityState === 'visible' && settings.googleScriptUrl) {
-        performSync(false);
-      }
-    };
-
-    window.addEventListener('focus', handleVisibilityOrFocus);
-    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+    // Ascolto in tempo reale della configurazione globale (link WhatsApp, password)
+    const unsubscribeConfig = subscribeToConfig((liveConfig) => {
+      setSettings(prev => {
+        const updated = { ...prev, ...liveConfig };
+        saveStoredSettings(updated);
+        return updated;
+      });
+    });
 
     return () => {
-      window.removeEventListener('focus', handleVisibilityOrFocus);
-      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+      unsubscribeGossips();
+      unsubscribeConfig();
     };
-  }, [settings.googleScriptUrl, performSync]);
+  }, []);
 
-  // Voto Hipe 🔥 con Cooldown di 10 secondi anti-spam
+  // Voto Hipe 🔥 con Cooldown di 10 secondi anti-spam e Live Sync Cloud
   const handleVoteHipe = useCallback((gossip: Gossip, e: React.MouseEvent) => {
     e.stopPropagation();
 
@@ -153,7 +114,7 @@ export default function App() {
     setLastVoteTimestamp(now);
     setCooldownRemaining(HIPE_COOLDOWN_SECONDS);
 
-    // Aggiorna lo stato e il contatore locale all'istante
+    // Aggiornamento ottimistico locale istantaneo
     setGossips(prev => {
       const updated = prev.map(item => {
         if (item.id === gossip.id) {
@@ -165,38 +126,36 @@ export default function App() {
       return updated;
     });
 
-    // Se stiamo visualizzando il dettaglio, aggiorna anche la scheda aperta
-    setSelectedGossip(prev => {
-      if (prev && prev.id === gossip.id) {
-        return { ...prev, hipe: prev.hipe + 1 };
-      }
-      return prev;
-    });
+    if (selectedGossip && selectedGossip.id === gossip.id) {
+      setSelectedGossip(prev => prev ? { ...prev, hipe: prev.hipe + 1 } : null);
+    }
 
-    // Salva voto tra gli ID votati dall'utente
     recordGossipVote(gossip.id);
     setVotedIds(prev => new Set(prev).add(gossip.id));
 
-    // Effetto visivo particellare
+    // Effetto grafico
     triggerFireworkConfetti();
 
-    // Sincronizza asincrono con Google Sheet (in tempo reale sul cloud)
-    if (settings.googleScriptUrl) {
-      voteHipeInGoogleSheet(settings.googleScriptUrl, gossip.id);
-    }
-  }, [settings.googleScriptUrl]);
+    // Sincronizzazione cloud istantanea per tutti i dispositivi
+    voteHipeInFirestore(gossip.id).catch((err) => {
+      console.warn('Errore voto Firebase:', err);
+    });
+  }, [selectedGossip]);
 
   // Invio nuovo gossip
-  const handleSubmitGossip = (newGossip: Gossip) => {
+  const handleSubmitGossip = async (newGossip: Gossip) => {
+    // Aggiunta immediata locale
     setGossips(prev => {
       const updated = [newGossip, ...prev];
       saveStoredGossips(updated);
       return updated;
     });
 
-    // Invia direttamente al Google Sheet
-    if (settings.googleScriptUrl) {
-      sendGossipToGoogleSheet(settings.googleScriptUrl, newGossip);
+    // Scrittura in tempo reale su Firebase (visibile istantaneamente a tutti gli utenti)
+    try {
+      await addGossipToFirestore(newGossip);
+    } catch (err) {
+      console.error('Errore invio gossip:', err);
     }
   };
 
@@ -213,9 +172,7 @@ export default function App() {
       return updated;
     });
 
-    if (settings.googleScriptUrl) {
-      updateGossipInGoogleSheet(settings.googleScriptUrl, id, { status: 'Approvato' });
-    }
+    updateGossipInFirestore(id, { status: 'Approvato' }).catch(console.error);
   };
 
   // Admin: Elimina gossip
@@ -226,9 +183,7 @@ export default function App() {
       return updated;
     });
 
-    if (settings.googleScriptUrl) {
-      deleteGossipInGoogleSheet(settings.googleScriptUrl, id);
-    }
+    deleteGossipFromFirestore(id).catch(console.error);
   };
 
   // Admin: Modifica testo
@@ -244,9 +199,7 @@ export default function App() {
       return updated;
     });
 
-    if (settings.googleScriptUrl) {
-      updateGossipInGoogleSheet(settings.googleScriptUrl, id, { text: newText });
-    }
+    updateGossipInFirestore(id, { text: newText }).catch(console.error);
   };
 
   // Admin: Salva impostazioni (link WhatsApp e password)
@@ -254,16 +207,10 @@ export default function App() {
     setSettings(newSettings);
     saveStoredSettings(newSettings);
 
-    if (newSettings.googleScriptUrl) {
-      updateConfigInGoogleSheet(newSettings.googleScriptUrl, 'whatsappLink', newSettings.whatsappLink);
-      updateConfigInGoogleSheet(newSettings.googleScriptUrl, 'adminPassword', newSettings.adminPassword);
-      // Forza una nuova sincronizzazione
-      performSync(true);
-    }
-  };
-
-  const handleManualSync = async () => {
-    await performSync(true);
+    updateConfigInFirestore({
+      whatsappLink: newSettings.whatsappLink,
+      adminPassword: newSettings.adminPassword
+    }).catch(console.error);
   };
 
   const pendingCount = gossips.filter(g => g.status === 'In attesa').length;
@@ -271,7 +218,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#050505] text-zinc-100 flex flex-col justify-between selection:bg-[#FF0033] selection:text-white">
       
-      {/* 1. TOP APP BAR CON BRAND ZONE, STATO SINCRONIZZAZIONE E WHATSAPP */}
+      {/* 1. TOP APP BAR CON BRAND ZONE, STATO LIVE SYNC E WHATSAPP */}
       <header className="sticky top-0 z-30 w-full border-b border-zinc-800/80 bg-[#07070a]/90 backdrop-blur-xl">
         <div className="max-w-5xl mx-auto px-4 h-15 flex items-center justify-between">
           
@@ -293,24 +240,16 @@ export default function App() {
           {/* Quick Actions Zone */}
           <div className="flex items-center gap-2">
             
-            {/* Indicatore Live Sync Cloud / Google Sheet */}
-            {settings.googleScriptUrl && (
-              <div 
-                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/80 border border-zinc-800 text-zinc-300 text-[11px] font-medium"
-                title={lastSyncTime ? `Ultima sincronizzazione: ${lastSyncTime.toLocaleTimeString('it-IT')}` : 'Connesso a Google Sheet'}
-              >
-                {isSyncing ? (
-                  <RefreshCw className="w-3 h-3 text-[#FF0033] animate-spin" />
-                ) : sheetConnected ? (
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse" />
-                ) : (
-                  <span className="w-2 h-2 rounded-full bg-amber-400" />
-                )}
-                <span className="text-zinc-400 font-mono text-[10px]">
-                  {isSyncing ? 'Sincronizzazione...' : 'Live Sync'}
-                </span>
-              </div>
-            )}
+            {/* Indicatore Live Sync Cloud Stile Social Network */}
+            <div 
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900/90 border border-zinc-800/90 text-zinc-300 text-[11px] font-medium"
+              title={isLiveConnected ? "Sincronizzazione in tempo reale attiva per tutti i dispositivi" : "Riconnessione al server..."}
+            >
+              <Radio className={`w-3 h-3 ${isLiveConnected ? 'text-emerald-400 animate-pulse' : 'text-amber-400'}`} />
+              <span className="text-[11px] font-semibold text-zinc-300 hidden sm:inline">
+                {isLiveConnected ? 'Live' : 'Connessione...'}
+              </span>
+            </div>
 
             {/* Link WhatsApp Ufficiale */}
             <a
@@ -406,7 +345,6 @@ export default function App() {
         onDeleteGossip={handleDeleteGossip}
         onUpdateGossipText={handleUpdateGossipText}
         onSaveSettings={handleSaveSettings}
-        onManualSync={handleManualSync}
       />
 
     </div>

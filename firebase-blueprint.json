@@ -1,0 +1,45 @@
+{
+  "entities": {
+    "Gossip": {
+      "title": "Gossip",
+      "description": "Un post di gossip scolastico anonimo o firmato con reazioni Hipe",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "displayDate": { "type": "string" },
+        "schoolYear": { "type": "string" },
+        "month": { "type": "string" },
+        "author": { "type": "string", "maxLength": 100 },
+        "isAnonymous": { "type": "boolean" },
+        "text": { "type": "string", "maxLength": 2000 },
+        "hipe": { "type": "number" },
+        "status": { "type": "string", "enum": ["Approvato", "In attesa", "Rifiutato"] },
+        "color": { "type": "string" },
+        "pinColor": { "type": "string" },
+        "rotation": { "type": "number" }
+      },
+      "required": ["id", "author", "text", "hipe", "status"]
+    },
+    "Config": {
+      "title": "Config",
+      "description": "Configurazione generale dell'applicazione",
+      "type": "object",
+      "properties": {
+        "whatsappLink": { "type": "string" },
+        "adminPassword": { "type": "string" },
+        "schoolName": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "/gossips/{gossipId}": {
+      "schema": "Gossip",
+      "description": "Raccolta di tutti i gossip della scuola"
+    },
+    "/config/{configId}": {
+      "schema": "Config",
+      "description": "Documenti di configurazione dell'app"
+    }
+  }
+}

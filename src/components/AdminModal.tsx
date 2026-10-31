@@ -2,11 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { 
   X, Lock, ShieldCheck, Check, Trash2, Edit3, Settings, 
   CheckCircle, AlertTriangle, MessageCircle, KeyRound, Flame,
-  Database, RefreshCw, UploadCloud, Copy, CheckCheck, ExternalLink
+  Radio, Sparkles
 } from 'lucide-react';
 import { Gossip, AppSettings } from '../types';
-import { GOOGLE_APPS_SCRIPT_SOURCE } from '../services/googleAppsScriptCode';
-import { testGoogleSheetConnection, bulkUploadToGoogleSheet } from '../services/storage';
 
 interface AdminModalProps {
   isOpen: boolean;
@@ -18,7 +16,6 @@ interface AdminModalProps {
   onDeleteGossip: (id: string) => void;
   onUpdateGossipText: (id: string, newText: string) => void;
   onSaveSettings: (settings: AppSettings) => void;
-  onManualSync: () => void;
 }
 
 export const AdminModal: React.FC<AdminModalProps> = ({
@@ -30,8 +27,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   onApproveGossip,
   onDeleteGossip,
   onUpdateGossipText,
-  onSaveSettings,
-  onManualSync
+  onSaveSettings
 }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [inputPassword, setInputPassword] = useState<string>('');
@@ -44,18 +40,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const [editingGossipId, setEditingGossipId] = useState<string | null>(null);
   const [editTextContent, setEditTextContent] = useState<string>('');
 
-  // Impostazioni form: link WhatsApp, password admin e opzione URL Google Sheet
+  // Impostazioni form: link WhatsApp e password admin
   const [tempWhatsapp, setTempWhatsapp] = useState<string>(settings.whatsappLink);
   const [tempPassword, setTempPassword] = useState<string>(settings.adminPassword);
-  const [tempScriptUrl, setTempScriptUrl] = useState<string>(settings.googleScriptUrl || '');
   const [settingsSaved, setSettingsSaved] = useState<boolean>(false);
-
-  // Stato test Google Sheets
-  const [isTestingSheet, setIsTestingSheet] = useState<boolean>(false);
-  const [sheetTestFeedback, setSheetTestFeedback] = useState<{ success: boolean; message: string } | null>(null);
-  const [isUploadingToSheet, setIsUploadingToSheet] = useState<boolean>(false);
-  const [uploadFeedback, setUploadFeedback] = useState<string | null>(null);
-  const [copiedCode, setCopiedCode] = useState<boolean>(false);
 
   // Reset e blocco di sicurezza ogni volta che si chiude la modale admin
   const handleSafeClose = () => {
@@ -63,8 +51,6 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     setInputPassword('');
     setAuthError(null);
     setEditingGossipId(null);
-    setSheetTestFeedback(null);
-    setUploadFeedback(null);
     onClose();
   };
 
@@ -74,14 +60,11 @@ export const AdminModal: React.FC<AdminModalProps> = ({
       setInputPassword('');
       setAuthError(null);
       setEditingGossipId(null);
-      setSheetTestFeedback(null);
-      setUploadFeedback(null);
     } else {
       setTempWhatsapp(settings.whatsappLink);
       setTempPassword(settings.adminPassword);
-      setTempScriptUrl(settings.googleScriptUrl || '');
     }
-  }, [isOpen, settings.whatsappLink, settings.adminPassword, settings.googleScriptUrl]);
+  }, [isOpen, settings.whatsappLink, settings.adminPassword]);
 
   if (!isOpen) return null;
 
@@ -115,58 +98,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     onSaveSettings({
       ...settings,
       whatsappLink: tempWhatsapp.trim(),
-      adminPassword: tempPassword.trim(),
-      googleScriptUrl: tempScriptUrl.trim()
+      adminPassword: tempPassword.trim()
     });
     setSettingsSaved(true);
     setTimeout(() => setSettingsSaved(false), 2500);
-  };
-
-  // Test di connessione in tempo reale con lo script di Google Sheets
-  const handleTestConnection = async () => {
-    if (!tempScriptUrl.trim()) {
-      setSheetTestFeedback({ success: false, message: 'Inserisci prima l\'URL della Web App di Google Apps Script!' });
-      return;
-    }
-    setIsTestingSheet(true);
-    setSheetTestFeedback(null);
-    const result = await testGoogleSheetConnection(tempScriptUrl.trim());
-    setIsTestingSheet(false);
-    setSheetTestFeedback({
-      success: result.success,
-      message: result.success 
-        ? `🟢 ${result.message} (${result.count ?? 0} gossip rilevati nel foglio)`
-        : `🔴 ${result.message}`
-    });
-  };
-
-  // Carica tutti i gossip correnti sul Google Sheet
-  const handleUploadAllToSheet = async () => {
-    const url = tempScriptUrl.trim() || settings.googleScriptUrl;
-    if (!url) {
-      setUploadFeedback('Inserisci prima l\'URL dello script!');
-      return;
-    }
-    setIsUploadingToSheet(true);
-    setUploadFeedback(null);
-    const result = await bulkUploadToGoogleSheet(url, gossips);
-    setIsUploadingToSheet(false);
-    if (result.success) {
-      setUploadFeedback(`✅ ${result.count} gossip caricati con successo nel tuo Google Sheet!`);
-    } else {
-      setUploadFeedback('❌ Errore durante l\'invio al Google Sheet. Verifica l\'URL.');
-    }
-    setTimeout(() => setUploadFeedback(null), 5000);
-  };
-
-  const handleCopyCode = async () => {
-    try {
-      await navigator.clipboard.writeText(GOOGLE_APPS_SCRIPT_SOURCE);
-      setCopiedCode(true);
-      setTimeout(() => setCopiedCode(false), 3000);
-    } catch {
-      // fallback
-    }
   };
 
   return (
@@ -284,7 +219,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 }`}
               >
                 <Settings className="w-3.5 h-3.5" />
-                <span>Impostazioni & Google Sheets</span>
+                <span>Impostazioni</span>
               </button>
 
               {/* Tasto Blocca e Esci */}
@@ -382,7 +317,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                       Archivio di Gestione Completo
                     </h4>
                     <p className="text-xs text-zinc-400">
-                      Modifica il testo dei gossip o rimuovi contenuti inappropriati dallo storico.
+                      Modifica il testo dei gossip o rimuovi contenuti inappropriati dallo storico in tempo reale.
                     </p>
                   </div>
 
@@ -469,129 +404,27 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 </div>
               )}
 
-              {/* SCHEDA 3: IMPOSTAZIONI & COLLEGAMENTO GOOGLE SHEETS */}
+              {/* SCHEDA 3: IMPOSTAZIONI (LINK WHATSAPP E PASSWORD) */}
               {adminTab === 'settings' && (
                 <div className="space-y-6">
                   
-                  {/* CARD 1: COLLEGAMENTO GOOGLE SHEETS (DATABASE CENTRALE CONDIVISO) */}
-                  <div className="p-5 rounded-2xl bg-zinc-950/90 border border-[#FF0033]/40 shadow-[0_0_20px_rgba(255,0,51,0.15)] space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Database className="w-5 h-5 text-[#FF0033]" />
-                        <h4 className="text-base font-bold text-white font-display">
-                          Google Sheets (Database Condiviso Multi-Dispositivo)
-                        </h4>
-                      </div>
-                      <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 ${
-                        settings.googleScriptUrl 
-                          ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-500/40' 
-                          : 'bg-zinc-800 text-zinc-400'
-                      }`}>
-                        <span className={`w-2 h-2 rounded-full ${settings.googleScriptUrl ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-500'}`} />
-                        {settings.googleScriptUrl ? 'Configurato' : 'Non collegato'}
-                      </span>
+                  {/* Banner Stato Cloud Sync */}
+                  <div className="p-4 rounded-2xl bg-zinc-950/90 border border-emerald-500/30 flex items-start gap-3">
+                    <div className="p-2 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-400 shrink-0 mt-0.5">
+                      <Radio className="w-4 h-4 animate-pulse" />
                     </div>
-
-                    <p className="text-xs text-zinc-300 leading-relaxed">
-                      Questo URL consente all'app di salvare e leggere tutti i gossip, voti Hipe e impostazioni direttamente dal tuo Google Sheet. In questo modo <strong>tutti i telefoni, computer e browser vedono gli stessi dati in tempo reale</strong>.
-                    </p>
-
-                    {/* Campo URL Web App */}
-                    <div className="space-y-1.5">
-                      <label className="block text-xs font-bold text-zinc-300">
-                        URL Web App Google Apps Script:
-                      </label>
-                      <input
-                        type="url"
-                        value={tempScriptUrl}
-                        onChange={(e) => setTempScriptUrl(e.target.value)}
-                        placeholder="https://script.google.com/macros/s/.../exec"
-                        className="w-full bg-[#050508] border border-zinc-700 focus:border-[#FF0033] rounded-xl py-2.5 px-3.5 text-xs text-white font-mono outline-none transition-colors"
-                      />
-                      <span className="text-[11px] text-zinc-500 block">
-                        L'URL deve terminare con <code className="text-[#FF0033]">/exec</code> (non /dev o /edit).
-                      </span>
-                    </div>
-
-                    {/* Azioni rapide di sincronizzazione e test */}
-                    <div className="flex flex-wrap items-center gap-2 pt-1">
-                      <button
-                        type="button"
-                        onClick={handleTestConnection}
-                        disabled={isTestingSheet}
-                        className="flex items-center gap-1.5 py-2 px-3.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-semibold transition-all disabled:opacity-50"
-                      >
-                        {isTestingSheet ? (
-                          <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#FF0033]" />
-                        ) : (
-                          <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-                        )}
-                        <span>Verifica Connessione</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={handleUploadAllToSheet}
-                        disabled={isUploadingToSheet}
-                        className="flex items-center gap-1.5 py-2 px-3.5 rounded-xl bg-[#FF0033] hover:bg-[#e0002d] text-white text-xs font-bold shadow-md transition-all active:scale-95 disabled:opacity-50"
-                      >
-                        {isUploadingToSheet ? (
-                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <UploadCloud className="w-3.5 h-3.5" />
-                        )}
-                        <span>Carica i gossip sul Google Sheet ORA</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={onManualSync}
-                        className="flex items-center gap-1.5 py-2 px-3 rounded-xl border border-zinc-700 hover:border-zinc-500 text-zinc-300 text-xs font-medium transition-colors"
-                      >
-                        <RefreshCw className="w-3 h-3" />
-                        <span>Sincronizza</span>
-                      </button>
-                    </div>
-
-                    {/* Feedback Test o Upload */}
-                    {sheetTestFeedback && (
-                      <div className={`p-3 rounded-xl text-xs font-medium border ${
-                        sheetTestFeedback.success 
-                          ? 'bg-emerald-950/40 border-emerald-600/40 text-emerald-200' 
-                          : 'bg-red-950/40 border-red-600/40 text-red-200'
-                      }`}>
-                        {sheetTestFeedback.message}
-                      </div>
-                    )}
-
-                    {uploadFeedback && (
-                      <div className="p-3 rounded-xl text-xs font-medium bg-emerald-950/40 border border-emerald-600/40 text-emerald-200">
-                        {uploadFeedback}
-                      </div>
-                    )}
-
-                    {/* Guida Rapida e Copia Codice Apps Script */}
-                    <div className="pt-2 border-t border-zinc-800/80 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-semibold text-zinc-400">
-                          Codice Backend Google Apps Script (Code.gs):
-                        </span>
-                        <button
-                          type="button"
-                          onClick={handleCopyCode}
-                          className="flex items-center gap-1 text-[11px] text-[#FF0033] hover:underline font-bold"
-                        >
-                          {copiedCode ? <CheckCheck className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                          <span>{copiedCode ? 'Copiato!' : 'Copia codice'}</span>
-                        </button>
-                      </div>
-                      <p className="text-[11px] text-zinc-500 leading-relaxed">
-                        Ricorda: in Apps Script clicca su <strong>Distribuisci &gt; Nuova distribuzione &gt; Applicazione web</strong>, imposta <em>"Chi ha accesso: Chiunque"</em> e incolla qui l'URL generato.
+                    <div className="space-y-1">
+                      <h5 className="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
+                        Sincronizzazione Social Cloud Attiva
+                        <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                      </h5>
+                      <p className="text-[11px] text-zinc-400 leading-relaxed">
+                        Tutti i dispositivi (qualsiasi telefono, tablet, computer e browser) sono collegati in tempo reale: ogni nuovo gossip o voto Hipe si aggiorna istantaneamente ovunque.
                       </p>
                     </div>
                   </div>
 
-                  {/* CARD 2: IMPOSTAZIONI GENERALI (LINK WHATSAPP E PASSWORD) */}
+                  {/* Form Impostazioni */}
                   <form onSubmit={handleSaveSettingsSubmit} className="p-5 rounded-2xl bg-zinc-950/80 border border-zinc-800 space-y-5">
                     <h4 className="text-base font-bold text-white font-display flex items-center gap-2">
                       <Settings className="w-4 h-4 text-[#FF0033]" />
@@ -648,7 +481,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                         type="submit"
                         className="ml-auto py-2.5 px-6 rounded-xl bg-[#FF0033] hover:bg-[#e0002d] text-white font-bold text-xs shadow-md transition-all active:scale-95"
                       >
-                        Salva Tutte le Impostazioni
+                        Salva Impostazioni
                       </button>
                     </div>
                   </form>

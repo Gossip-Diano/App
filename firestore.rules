@@ -1,0 +1,41 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function isValidGossip(data) {
+      return data.id is string && isValidId(data.id) &&
+             data.text is string && data.text.size() <= 2000 &&
+             data.author is string && data.author.size() <= 100 &&
+             data.hipe is number && data.hipe >= 0 &&
+             data.status in ['Approvato', 'In attesa', 'Rifiutato'];
+    }
+
+    match /gossips/{gossipId} {
+      allow read: if true;
+      allow create: if isValidId(gossipId) && isValidGossip(incoming());
+      allow update: if isValidId(gossipId) && isValidGossip(incoming());
+      allow delete: if isValidId(gossipId);
+    }
+
+    match /config/{configId} {
+      allow read: if true;
+      allow write: if true;
+    }
+    
+    match /test/{docId} {
+      allow read, write: if true;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
