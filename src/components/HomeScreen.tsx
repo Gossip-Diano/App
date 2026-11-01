@@ -58,10 +58,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     .sort((a, b) => b.hipe - a.hipe);
 
   return (
-    <div className="w-full max-w-full overflow-x-hidden space-y-7 sm:space-y-10 pb-28 pt-1">
+    <div className="w-full space-y-7 sm:space-y-10 pb-28 pt-1">
       
       {/* 1. SEZIONE IN ALTO: BACHECA DEI POST-IT */}
-      <section className="w-full max-w-full overflow-hidden space-y-3 sm:space-y-4">
+      <section className="w-full space-y-3 sm:space-y-4">
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-[#FF0033] shadow-[0_0_8px_#FF0033]" />
@@ -154,7 +154,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       </section>
 
       {/* 2. SEZIONE IN BASSO: CLASSIFICA HIPE */}
-      <section className="w-full max-w-full overflow-hidden space-y-3 sm:space-y-4">
+      <section className="w-full space-y-3 sm:space-y-4">
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
             <Flame className="w-5 h-5 sm:w-6 sm:h-6 text-[#FF0033] fill-[#FF0033]" />
@@ -172,7 +172,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             Nessun gossip ancora in classifica.
           </div>
         ) : (
-          <div className="space-y-2.5 sm:space-y-3 w-full max-w-full overflow-hidden">
+          <div className="space-y-2.5 sm:space-y-3 w-full">
             {rankedGossips.map((gossip, index) => {
               const rank = index + 1;
               const isTop1 = rank === 1;

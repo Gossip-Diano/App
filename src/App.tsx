@@ -214,7 +214,7 @@ export default function App() {
   const pendingCount = gossips.filter(g => g.status === 'In attesa').length;
 
   return (
-    <div className="min-h-[100dvh] w-full max-w-full overflow-x-hidden bg-[#050505] text-zinc-100 flex flex-col justify-between selection:bg-[#FF0033] selection:text-white">
+    <div className="min-h-screen w-full bg-[#050505] text-zinc-100 flex flex-col justify-between selection:bg-[#FF0033] selection:text-white">
       
       {/* 1. TOP APP BAR CON SUPPORTO SAFE-AREA (NOTCH / DYNAMIC ISLAND) */}
       <header className="sticky top-0 z-30 w-full border-b border-zinc-800/80 bg-[#07070a]/90 backdrop-blur-xl pt-[env(safe-area-inset-top,0px)]">
@@ -274,7 +274,7 @@ export default function App() {
       )}
 
       {/* 2. AREA CONTENUTI PRINCIPALE DINAMICA CON SAFE PADDING INFERIORE */}
-      <main className="flex-1 max-w-5xl w-full max-w-full overflow-x-hidden mx-auto px-2.5 sm:px-4 pt-3 pb-[calc(5rem+env(safe-area-inset-bottom,0px))]">
+      <main className="flex-1 max-w-5xl w-full mx-auto px-2.5 sm:px-4 pt-3 pb-[calc(6rem+env(safe-area-inset-bottom,0px))]">
         {currentTab === 'home' && (
           <HomeScreen
             gossips={gossips}
